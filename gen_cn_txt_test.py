@@ -53,13 +53,10 @@ BGS_DIR = './bgs_10'
 FONT_DIR = './fonts_cn'
 FONT_HEIGHT = 48  # Pixel size to which the chars are resized
 
-#D_OUTPUT_DIR = './syndata_cn/detect'
 R_OUTPUT_DIR = './syndata_8000_test'
-#OUTPUT_SHAPE = (32, 128)
 
-#dlable = 'D_label.txt'
-train_lable = 'train_label_dict.txt'
-test_lable = 'test_label_dict.txt'
+train_lable = 'train_label.txt'
+test_lable = 'test_label.txt'
 def make_char_ims(font_path, output_height,font_color):
     a = 30 
     b = random.randint(0,20)
@@ -75,7 +72,7 @@ def make_char_ims(font_path, output_height,font_color):
 
         draw = ImageDraw.Draw(im)
         draw.text((0, 0), c, font_color,font=font)
-        #print font_color
+
         scale = float(output_height) / (height-a-b)
         im = im.resize((int(width * scale), output_height), Image.ANTIALIAS)
         yield c, numpy.array(im).astype(numpy.float32) / 255.
@@ -127,7 +124,6 @@ def make_affine_transform(from_shape, to_shape,
                                (max_scale - min_scale) * 0.5 * scale_variation,
                                (min_scale + max_scale) * 0.5 +
                                (max_scale - min_scale) * 0.5 * scale_variation)
-        #print '333333',scale
         if scale > max_scale or scale < min_scale:
             continue
         out_of_bounds_scale = False
@@ -164,8 +160,6 @@ def make_affine_transform(from_shape, to_shape,
     M = euler_to_mat(yaw, pitch, roll)[:2, :2]
     M *= scale
     T = trans + center_to - numpy.dot(M, center_from)
-    #M = numpy.eye(2)
-    #M = numpy.hstack([M, numpy.zeros([2, 1])])
     M = numpy.hstack([M, T])
 
     return M
@@ -241,14 +235,11 @@ def get_dominant_color(image):
     return dominant_color
 	
 def colorRGB(img_color):
-    #print img_color
     a = img_color[0]
     b = img_color[1]
     c = img_color[2]
-    #print "66666666666666",a,b,c
+
     ran = random.randint(0,20)
-    #ran1 = random.randint(0,20)
-    #ran2 = random.randint(0,20)
     if a > 127 :
         a = a - 127 - ran
         a = max(0,a)
@@ -256,25 +247,8 @@ def colorRGB(img_color):
     else:
         a = a + 127 + ran
         a = min(a,255)
-        #a = 255 - ran
-    '''if b > 127 :
-        b = b - 127 - ran1
-        b = max(0,b)
-        #b = ran1
-    else:
-        b = b + 127 + ran1
-        b = min(b,255)
-        #b = 255 - ran1
-    if c > 127 :
-        c = c - 127 - ran2
-        c = max(0,c)
-        #c = ran2
-    else:
-        c = c + 127 + ran2
-        c = min(c,255)
-        #c = 255 - ran2'''
+
     font_color = (a,b,c)
-    #print "58585858585858",font_color
     return font_color
 	
 def generate_im(num_bg_images):
@@ -305,10 +279,7 @@ def generate_im(num_bg_images):
     corners_af = numpy.dot(M[:2, :2], corners_bf) + M[:2, -1]
     tl = numpy.min(corners_af, axis=1).T
     br = numpy.max(corners_af, axis=1).T
-    #print '111111',tl
-    #print  '222222',br
     box = numpy.hstack([tl, br])
-    #print bg
     out = text + bg
     out = cv2.resize(out, (bg.shape[1], bg.shape[0]))
     out = numpy.clip(out, 0., 1.)
@@ -326,28 +297,15 @@ def load_fonts(folder_path,font_color):
 
 
 def generate_ims():
-    '''
-    Generate number plate images.
-
-    :return:
-        Iterable of number plate images.
-
-    '''
     variation = 1.0
-    #fonts, font_char_ims= load_fonts(FONT_DIR)
-
     while True:
         yield generate_im(num_bg_images)
 
 
 if __name__ == '__main__':
-    
-    #if not os.path.exists(D_OUTPUT_DIR):
-    #    os.mkdir(D_OUTPUT_DIR)
     if not os.path.exists(R_OUTPUT_DIR):
         os.mkdir(R_OUTPUT_DIR)
     
-    #Dfile = open(D_OUTPUT_DIR+os.sep+dlable, 'w')
     Train_file = open(train_lable, 'w')
     Test_file = open(test_lable, 'w')
     Wfile = open('words_8000.txt', 'r')
@@ -355,7 +313,6 @@ if __name__ == '__main__':
     filenames = os.listdir(BGS_DIR)
     for fn in filenames:
         fullfilename = os.path.join(BGS_DIR,fn)
-        #print(fullfilename)
         bg = cv2.imread(fullfilename, cv2.CV_LOAD_IMAGE_COLOR)
         imgH = 500
         h, w = bg.shape[:2]
@@ -372,15 +329,7 @@ if __name__ == '__main__':
         im_gen = itertools.islice(generate_ims(), num_bg_images)
         for img_idx, (im, c, bx) in enumerate(im_gen):
             im = im * 255.
-            #dimage = u'D_{:08d}_{}.png'.format(img_idx, c)
-            #print dimage.encode('utf-8')
-            
-            #cv2.imwrite(D_OUTPUT_DIR+os.sep+dimage.encode('utf-8'), im)
-            #Dfile.write(dimage.encode('utf-8') + ' ')
-            #numpy.savetxt(Dfile, bx, fmt='%.2f')
-            #Dfile.flush()
-
-            
+        
             rimage ='R_{:08d}.png'.format(cnt)
             print rimage
             crop = im[int(bx[:, 1]):int(bx[:, 3]), int(bx[:, 0]):int(bx[:, 2]), ]
@@ -391,14 +340,13 @@ if __name__ == '__main__':
             imgW = int(ratio * imgH)
             res=cv2.resize(crop,(imgW,imgH),interpolation = cv2.INTER_CUBIC)
             cv2.imwrite(R_OUTPUT_DIR+os.sep+rimage.encode('utf-8'), res)
-            '''if img_idx % 5 == 0:
+            if img_idx % 5 == 0:
                 Test_file.write(rimage.encode('utf-8') + ' ' + c.encode('utf-8') + '\n')
-                Test_file.flush()	'''			
+                Test_file.flush()		
             Train_file.write(rimage.encode('utf-8') + ' ' + c.encode('utf-8') + '\n')
             Train_file.flush()
             cnt += 1
     
-    #Dfile.close()
     Train_file.close()
     Test_file.close()
     Wfile.close()
