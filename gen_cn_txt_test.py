@@ -54,14 +54,14 @@ FONT_DIR = './fonts_cn'
 FONT_HEIGHT = 48  # Pixel size to which the chars are resized
 
 #D_OUTPUT_DIR = './syndata_cn/detect'
-R_OUTPUT_DIR = './syndata_dict'
+R_OUTPUT_DIR = './syndata_8000_test'
 #OUTPUT_SHAPE = (32, 128)
 
 #dlable = 'D_label.txt'
 train_lable = 'train_label_dict.txt'
 test_lable = 'test_label_dict.txt'
 def make_char_ims(font_path, output_height,font_color):
-    a = 50 
+    a = 30 
     b = random.randint(0,20)
     font_size = output_height * 4
 
@@ -350,7 +350,19 @@ if __name__ == '__main__':
     #Dfile = open(D_OUTPUT_DIR+os.sep+dlable, 'w')
     Train_file = open(train_lable, 'w')
     Test_file = open(test_lable, 'w')
-    Wfile = open('word.txt', 'r')
+    Wfile = open('words_8000.txt', 'r')
+    fname = BGS_DIR 
+    filenames = os.listdir(BGS_DIR)
+    for fn in filenames:
+        fullfilename = os.path.join(BGS_DIR,fn)
+        #print(fullfilename)
+        bg = cv2.imread(fullfilename, cv2.CV_LOAD_IMAGE_COLOR)
+        imgH = 500
+        h, w = bg.shape[:2]
+        ratio = w / float(h)
+        imgW = int(ratio * imgH)
+        res=cv2.resize(bg,(imgW,imgH),interpolation = cv2.INTER_CUBIC)
+        cv2.imwrite(fullfilename, res)
 
     num_bg_images = len(os.listdir(BGS_DIR))
     bgs = generate_bg(BGS_DIR)
@@ -379,9 +391,9 @@ if __name__ == '__main__':
             imgW = int(ratio * imgH)
             res=cv2.resize(crop,(imgW,imgH),interpolation = cv2.INTER_CUBIC)
             cv2.imwrite(R_OUTPUT_DIR+os.sep+rimage.encode('utf-8'), res)
-            if img_idx % 5 == 0:
+            '''if img_idx % 5 == 0:
                 Test_file.write(rimage.encode('utf-8') + ' ' + c.encode('utf-8') + '\n')
-                Test_file.flush()				
+                Test_file.flush()	'''			
             Train_file.write(rimage.encode('utf-8') + ' ' + c.encode('utf-8') + '\n')
             Train_file.flush()
             cnt += 1
@@ -390,4 +402,3 @@ if __name__ == '__main__':
     Train_file.close()
     Test_file.close()
     Wfile.close()
-
