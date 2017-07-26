@@ -48,32 +48,26 @@ from PIL import ImageFont
 
 import common_cn
 
-BGS_DIR = './bgs_1'
+BGS_DIR = './bgs_10'
 
 FONT_DIR = './fonts_cn'
 FONT_HEIGHT = 48  # Pixel size to which the chars are resized
 
-#D_OUTPUT_DIR = './syndata_cn/detect'
-R_OUTPUT_DIR = 'zj_500_5-900'  #'./syndata_8000'
-WORD_TXT = 'zj_500_5-900.txt'
-#WORD_TIMES = 4
-#OUTPUT_SHAPE = (32, 128)
+R_OUTPUT_DIR = './syndata_8000'
+WORD_TXT = 'word.txt'
 
-#dlable = 'D_label.txt'
-train_lable = 'zj_500_5-900_train.txt'
-test_lable = 'zj_500_5-900_test.txt'
+
+train_lable = 'syndata_train.txt'
+test_lable = 'syndata_8000_test.txt'
 def make_char_ims(font_path, output_height,font_color): 
     b = random.randint(30,50)
     font_size = output_height * 4
-
     font = ImageFont.truetype(font_path, font_size)
-
     height = max(font.getsize(c)[1] for c in CHARS)+b
 
     for c in CHARS:
         width = font.getsize(c)[0]
         im = Image.new('RGB', (width, height), (0, 0, 0))
-
         draw = ImageDraw.Draw(im)
         draw.text((0, 0), c, font_color,font=font)
         scale = float(output_height) / (height-b)
@@ -164,8 +158,6 @@ def make_affine_transform(from_shape, to_shape,
     M = euler_to_mat(yaw, pitch, roll)[:2, :2]
     M *= scale
     T = trans + center_to - numpy.dot(M, center_from)
-    #M = numpy.eye(2)
-    #M = numpy.hstack([M, numpy.zeros([2, 1])])
     M = numpy.hstack([M, T])
 
     return M
@@ -204,8 +196,6 @@ def generate_text(font_height, char_ims):
         x += char_im.shape[1] + spacing
 
     text = numpy.ones(out_shape) * text_color * text_mask
-    #cv2.imwrite('text.jpg', text)
-    #print code
     return text, code
 
 
@@ -229,21 +219,15 @@ def get_dominant_color(image):
             continue
         saturation = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)[1]
         y = min(abs(r * 2104 + g * 4130 + b * 802 + 4096 + 131072) >> 13, 235)       
-        y = (y - 16.0) / (235 - 16) 
-           
+        y = (y - 16.0) / (235 - 16)            
         if y > 0.9:
             dominant_color = (r, g, b)
             continue
-
-        score = (saturation + 0.1) * count
-        
+        score = (saturation + 0.1) * count        
         if score > max_score:
             max_score = score
-            dominant_color = (r, g, b)
-
-            
-    os.remove(os.path.join('1.jpg'))
-    
+            dominant_color = (r, g, b)            
+    os.remove(os.path.join('1.jpg'))    
     return dominant_color
 	
 def colorRGB(img_color):
@@ -272,14 +256,11 @@ def colorRGB(img_color):
         c = c + 127 + ran2
         c = min(c,255)
     font_color = (a,b,c)
-    print font_color
     return font_color
 	
 def generate_im(num_bg_images):
-    bg = next(bgs)
-    
+    bg = next(bgs)   
     img_bg = bg * 255.
-    
     bg_color = get_dominant_color(img_bg)
     try:
         font_color = colorRGB(bg_color)
@@ -292,7 +273,6 @@ def generate_im(num_bg_images):
     char_ims = font_char_ims[random.choice(fonts)]
     text, code = generate_text(FONT_HEIGHT, char_ims)
     cv2.imwrite('text.png', text*255)
-    #print text,code
     M = make_affine_transform(
             from_shape=text.shape,
             to_shape=bg.shape,
@@ -302,7 +282,6 @@ def generate_im(num_bg_images):
             scale_variation=0.2,
             translation_variation=0.2)
     ht, wt = text.shape[0], text.shape[1]
-    #print ht,wt
     corners_bf = numpy.matrix([[0, wt, 0, wt],
                                [0, 0, ht, ht]])
     text = cv2.warpAffine(text, M, (bg.shape[1], bg.shape[0]))
@@ -316,13 +295,11 @@ def generate_im(num_bg_images):
         out = bg - text
     else:
         out = text + bg
-
     out = cv2.resize(out, (bg.shape[1], bg.shape[0]))
     out = numpy.clip(out, 0., 1.)
-    #print (out*255)
+
     cv2.imwrite('box.png', out*255)
     return out, code, box
-
 
 def load_fonts(folder_path,font_color):
     font_char_ims = {}
@@ -332,7 +309,6 @@ def load_fonts(folder_path,font_color):
                                                               font),
                                                  FONT_HEIGHT,font_color))
     return fonts, font_char_ims
-
 
 def generate_ims():
     '''
@@ -350,15 +326,11 @@ def generate_ims():
 
 if __name__ == '__main__':
     
-    #if not os.path.exists(D_OUTPUT_DIR):
-    #    os.mkdir(D_OUTPUT_DIR)
     if not os.path.exists(R_OUTPUT_DIR):
         os.mkdir(R_OUTPUT_DIR)
     
-    #Dfile = open(D_OUTPUT_DIR+os.sep+dlable, 'w')
     Train_file = open(train_lable, 'w')
     Test_file = open(test_lable, 'w')
-    #Wfile = open('word1.txt', 'r')
     Wfile = open(WORD_TXT, 'r')
     fname = BGS_DIR 
     filenames = os.listdir(BGS_DIR)
@@ -384,24 +356,20 @@ if __name__ == '__main__':
             rimage ='R_{:08d}.png'.format(cnt)
             print rimage
             crop = im[int(bx[:, 1]):int(bx[:, 3]), int(bx[:, 0]):int(bx[:, 2]), ]
-            '''          
+          
             imgH = 32
             h, w = crop.shape[:2]
             ratio = w / float(h)
             imgW = int(ratio * imgH)
             res=cv2.resize(crop,(imgW,imgH),interpolation = cv2.INTER_CUBIC)
             cv2.imwrite(R_OUTPUT_DIR+os.sep+rimage.encode('utf-8'), res)'''
-            '''if img_idx % 5 == 0:
+            if img_idx % 5 == 0:
                 Test_file.write(rimage.encode('utf-8') + ' ' + c.encode('utf-8') + '\n')
-                Test_file.flush()	'''		
-            res=cv2.resize(crop,(100,32),interpolation = cv2.INTER_CUBIC)
-            cv2.imwrite(R_OUTPUT_DIR+os.sep+rimage.encode('utf-8'), res)				
+                Test_file.flush()						
             Train_file.write(rimage.encode('utf-8') + ' ' + c.encode('utf-8') + '\n')
             Train_file.flush()
             cnt += 1
-            '''if img_idx>(WORD_TIMES-1):
-                break'''
-    #Dfile.close()
+
     Train_file.close()
     Test_file.close()
     Wfile.close()
