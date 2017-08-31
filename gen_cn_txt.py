@@ -43,6 +43,7 @@ import cv2
 import numpy
 import math
 import time
+import linecache
 import argparse
 from PIL import Image
 from PIL import ImageDraw
@@ -262,7 +263,7 @@ def get_dominant_color(image):
         if score > max_score:
             max_score = score
             dominant_color = (r, g, b)            
-    #os.remove(os.path.join('1.jpg')) 
+    os.remove(os.path.join('1.jpg')) 
     return dominant_color
 	
 def hsv2rgb(h, s, v):
@@ -396,13 +397,43 @@ def generate_ims():
 
     while True:
         yield generate_im(num_bg_images)
-
+    
 
 if __name__ == '__main__':
 
-    Train_file = open(train_lable, 'w')
-    Test_file = open(test_lable, 'w')
-    Wfile = open(WORD_TXT, 'r')
+    Wfile = open(WORD_TXT,'r')
+    point_load = 'point.txt'
+    count = -1
+    cnt = 0
+    if not os.path.exists(point_load):
+        filena = Wfile
+        Train_file = open(train_lable, 'w')
+        Test_file = open(test_lable, 'w')
+    else:
+        Train_file = open(train_lable, 'a')
+        Test_file = open(test_lable, 'a')
+        try:
+            assert os.path.getsize(point_load) != 0
+        except:
+            print "the point file is None!!!"
+            #return False
+            sys.exit(0)
+        point_file = open(point_load,'rb+')
+        point = point_file.read()
+        #print point
+        cnt = int(point.split('_')[3].split('.')[0])+1
+        point = point.split()[1]
+        #print 'cnt = :',cnt
+        for count,orgline in enumerate(Wfile):
+            count += 1
+            orgline=orgline.strip('\n')
+            if orgline == point:                
+                break
+        linecache.clearcache()		
+        filena = linecache.getlines(WORD_TXT)[count:]             
+    if filena == []:
+        print "all datasets complete!!!"
+
     fname = BGS_DIR 
     filenames = os.listdir(BGS_DIR)
     for fn in filenames:
@@ -417,8 +448,8 @@ if __name__ == '__main__':
 
     num_bg_images = opt.sumnumber
     bgs = generate_bg(BGS_DIR)
-    cnt = 0
-    for line in Wfile:
+    
+    for line in filena:
         CHARS = line.strip('\n').decode('utf-8')
         im_gen = itertools.islice(generate_ims(), num_bg_images)
         for img_idx, (im, c, bx) in enumerate(im_gen):
@@ -440,6 +471,12 @@ if __name__ == '__main__':
                 Test_file.write(rimage.encode('utf-8') + ' ' + c.encode('utf-8') + '\n')
                 Test_file.flush()
             cnt += 1
+            point_file = open('point.txt','w')
+            #print c.encode('utf-8')
+            point_file.write(rimage.encode('utf-8') + ' ' + c.encode('utf-8'))
+            point_file.flush()
+            point_file.close()
     Train_file.close()
     Test_file.close()
+    
     Wfile.close()
